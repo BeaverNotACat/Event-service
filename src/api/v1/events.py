@@ -23,7 +23,7 @@ events_router = APIRouter(
 )
 
 
-@events_router.get("/", response_model=list[GetEventList])
+events_router.get("/", response_model=list[GetEventList])
 async def listevents(
     filter: Annotated[EventListFilterSchema, Depends(EventListFilterSchema)],
 ):
