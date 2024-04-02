@@ -13,7 +13,13 @@ class Settings(BaseSettings):
 
     AUTH_SERVICE_URL: str
 
-    FILE_STORAGE_PATH: str = "./media"
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_S3_BUCKET_NAME: str
+    AWS_S3_ENDPOINT_URL: str
+    AWS_DEFAULT_ACL: str = "public-read"
+    AWS_S3_USE_SSL: bool
+
 
     @cached_property
     def postgres_url(self):
