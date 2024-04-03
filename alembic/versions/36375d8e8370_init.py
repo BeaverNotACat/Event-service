@@ -1,8 +1,8 @@
 """Init
 
-Revision ID: a9e9dba7802c
+Revision ID: 36375d8e8370
 Revises: 
-Create Date: 2024-04-02 13:07:57.959763
+Create Date: 2024-04-02 20:23:15.892146
 
 """
 from typing import Sequence, Union
@@ -10,11 +10,11 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-import src.database.file_storage
-import sqlalchemy_utils.types.currency
+import sqlalchemy_utils
+
 
 # revision identifiers, used by Alembic.
-revision: str = 'a9e9dba7802c'
+revision: str = '36375d8e8370'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('about', sa.String(), nullable=False),
     sa.Column('address', sa.String(), nullable=False),
-    sa.Column('banner', src.database.file_storage.FileType(), nullable=True),
+    sa.Column('banner_filename', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('sport_type',
@@ -87,7 +87,7 @@ def upgrade() -> None:
     op.create_table('document',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('event_id', sa.Uuid(), nullable=False),
-    sa.Column('file', src.database.file_storage.FileType(), nullable=True),
+    sa.Column('filename', sa.String(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['event_id'], ['event.id'], ),
     sa.PrimaryKeyConstraint('id')

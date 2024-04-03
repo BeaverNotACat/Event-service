@@ -8,9 +8,7 @@ from sqlalchemy.orm.collections import attribute_keyed_dict
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.associationproxy import AssociationProxy
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy_utils.types.currency import CurrencyType, Currency
-
-from src.database.file_storage import FileType
+from sqlalchemy_utils.types.currency import CurrencyType
 
 
 class Base(
@@ -72,7 +70,7 @@ class EventTranslation(Base):
     title: Mapped[str] = mapped_column()
     about: Mapped[str] = mapped_column()
     address: Mapped[str] = mapped_column()
-    banner = mapped_column(FileType())
+    banner_filename: Mapped[str] = mapped_column()
     articles: Mapped[List["Article"]] = relationship()
     starter_items: Mapped[List["StarterItem"]] = relationship()
 
@@ -122,8 +120,8 @@ class Document(Base):
     __tablename__ = "document"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(Event.id))
-    file = mapped_column(FileType())
-    name: Mapped[str] = mapped_column()
+    title: Mapped[str] = mapped_column()
+    filename: Mapped[str] = mapped_column()
 
 
 class SocialLink(Base):
@@ -136,14 +134,14 @@ class SocialLink(Base):
 class StarterItem(Base):
     __tablename__ = "starter_item"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(EventTranslation.id))
-    starter_item: Mapped[str] = mapped_column()
+    event_translation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(EventTranslation.id))
+    name: Mapped[str] = mapped_column()
 
 
 class Article(Base):
     __tablename__ = "article"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(EventTranslation.id))
+    event_translation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(EventTranslation.id))
     title: Mapped[str] = mapped_column()
     text: Mapped[str] = mapped_column()
 
@@ -156,7 +154,7 @@ class Ticket(Base):
     sport_type_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sport_type.id"))
 
     sport_type: Mapped["SportType"] = relationship()
-    ticket_registrations: Mapped[list["TicketRegistration"]] = relationship()
+    registrations: Mapped[list["TicketRegistration"]] = relationship()
     translation_associations: Mapped[dict[str, "TicketTranslationAssociation"]] = (
         relationship(
             back_populates="ticket",

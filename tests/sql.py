@@ -4,12 +4,17 @@ from datetime import datetime
 import uuid
 
 from fastapi import UploadFile
-
 from src.database.session import async_session_maker
+from src.database.s3_storage import get_storage
 from src.database.models import Event, EventTranslation, SportType
 
 
 async def test_file_creation():
+    banner = UploadFile(
+        file=io.BytesIO(b"some initial text data"),
+        filename='banner.jpg',
+    )
+    banner_path = get_storage().write(banner.file, banner.filename)
     event = Event(
         registration_start = datetime.utcnow(),
         registration_end = datetime.utcnow(),
@@ -23,19 +28,13 @@ async def test_file_creation():
         title = "Хуй",
         about = "Хуй хуй",
         address = "Х. хуй",
-        banner = UploadFile(
-            file=io.BytesIO(b"some initial text data"),
-            filename='banner.jpg'
-        )
+        banner_filename=banner_path
     )
     en = EventTranslation(
         title = "Dikc",
         about = "Dick dick",
         address = "D. dick",
-        banner = UploadFile(
-            file=io.BytesIO(b"some initial text data"),
-            filename='banner.jpg'
-        )
+        banner_filename=banner_path
     )
     event.translations["en-US"] = en
     event.translations["ru-RU"] = ru
