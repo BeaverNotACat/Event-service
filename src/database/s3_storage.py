@@ -1,4 +1,3 @@
-import mimetypes
 from functools import lru_cache
 from pathlib import Path
 from typing import BinaryIO
@@ -9,14 +8,14 @@ import boto3
 from src.settings import get_settings
 
 
-class S3Storage():
+class S3Storage:
     default_content_type = "application/octet-stream"
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
     AWS_S3_BUCKET_NAME: str
     AWS_S3_ENDPOINT_URL: str
     AWS_DEFAULT_ACL: str
-    AWS_S3_CUSTOM_DOMAIN: str =  ""
+    AWS_S3_CUSTOM_DOMAIN: str = ""
     AWS_S3_USE_SSL: bool
     AWS_QUERYSTRING_AUTH: bool = False
 
@@ -29,13 +28,10 @@ class S3Storage():
         self._url = f"{self._http_scheme}://{self.AWS_S3_ENDPOINT_URL}"
         session = boto3.session.Session()
         self._s3 = session.resource(
-            service_name = "s3",
+            service_name="s3",
             endpoint_url=self._url,
             aws_access_key_id=self.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=self.AWS_SECRET_ACCESS_KEY,
-            # aws_session_token=None,
-            # config=boto3.session.Config(signature_version='s3v4'),
-            # verify=False
         )
         self._bucket = self._s3.Bucket(name=self.AWS_S3_BUCKET_NAME)
 
@@ -56,8 +52,8 @@ class S3Storage():
     def generate_new_filename(self, filename: str) -> str:
         suffix = Path(filename).suffix
         filename = f"{uuid.uuid4().hex}{suffix}"
-        # while self._check_object_exists(filename):
-            # filename = f"{uuid.uuid4().hex}{suffix}"
+        while self._check_object_exists(filename):
+            filename = f"{uuid.uuid4().hex}{suffix}"
         return filename
 
     def _check_object_exists(self, key: str) -> bool:
@@ -78,6 +74,7 @@ class PublicAssetS3Storage(S3Storage):
     AWS_DEFAULT_ACL = get_settings().AWS_DEFAULT_ACL
     AWS_S3_USE_SSL = get_settings().AWS_S3_USE_SSL
 
+
 @lru_cache
-def get_storage():
+def s3_session_maker():
     return PublicAssetS3Storage()

@@ -2,6 +2,9 @@ deps:
 	python -m pip install poetry
 	poetry install
 
+lint:
+	poetry run ruff check
+
 migrate:
 	poetry run alembic upgrade head
 

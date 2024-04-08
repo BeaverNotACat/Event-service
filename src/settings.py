@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     AWS_DEFAULT_ACL: str = "public-read"
     AWS_S3_USE_SSL: bool
 
-
     @cached_property
     def postgres_url(self):
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}/{self.POSTGRES_DB}"

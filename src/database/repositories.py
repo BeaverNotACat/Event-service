@@ -1,12 +1,12 @@
-import typing
+from sqlalchemy import select
 
 from src.database.models import (
     Event,
-    EventTranslation,
+    EventLocalisation,
     Ticket,
-    TicketTranslation,
+    TicketLocalisation,
     SportType,
-    SportTypeTranslation,
+    SportTypeLocalisation,
     Document,
     SocialLink,
     StarterItem,
@@ -19,25 +19,35 @@ from src.utils.repository import SQLAlchemyRepository
 class EventRepository(SQLAlchemyRepository):
     model = Event
 
+    async def find_all_paginated(self, limit: int, offset: int):
+        stmt = (
+            select(self.model)
+            .options(*self.get_select_options())
+            .limit(limit)
+            .offset(offset)
+        )  # type: ignore
+        res = await self.session.execute(stmt)
+        return res.scalars().fetchall()
 
-class EventTranslationRepository(SQLAlchemyRepository):
-    model = EventTranslation
+
+class EventLocalisationRepository(SQLAlchemyRepository):
+    model = EventLocalisation
 
 
 class TicketRepository(SQLAlchemyRepository):
     model = Ticket
 
 
-class TicketTranslationRepository(SQLAlchemyRepository):
-    model = TicketTranslation
+class TicketLocalisationRepository(SQLAlchemyRepository):
+    model = TicketLocalisation
 
 
 class SportTypeRepository(SQLAlchemyRepository):
     model = SportType
 
 
-class SportTypeTranslationRepository(SQLAlchemyRepository):
-    model = SportTypeTranslation
+class SportTypeLocalisationRepository(SQLAlchemyRepository):
+    model = SportTypeLocalisation
 
 
 class DocumentRepository(SQLAlchemyRepository):
@@ -58,5 +68,3 @@ class ArticleRepository(SQLAlchemyRepository):
 
 class TicketRegistrationRepository(SQLAlchemyRepository):
     model = TicketRegistration
-
-

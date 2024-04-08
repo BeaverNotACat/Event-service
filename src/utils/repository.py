@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import uuid
 
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,11 +23,11 @@ class SQLAlchemyRepository(AbstractRepository):
         self.session = session
 
     async def add_one(self, data: dict) -> int:
-        stmt = insert(self.model).values(**data).returning(self.model.id) #type: ignore
+        stmt = insert(self.model).values(**data).returning(self.model.id)  # type: ignore
         res = await self.session.execute(stmt)
         return res.scalar_one()
 
-    async def edit_one(self, id: int, data: dict) -> int:
+    async def edit_one(self, id: uuid.UUID, data: dict) -> int:
         stmt = (
             update(self.model)  # type: ignore
             .values(**data)
@@ -37,13 +38,18 @@ class SQLAlchemyRepository(AbstractRepository):
         return res.scalar_one()
 
     async def find_all(self):
-        stmt = select(self.model).options(*self.get_select_options()) # type: ignore
+        stmt = select(self.model).options(*self.get_select_options())  # type: ignore
+        res = await self.session.execute(stmt)
+        return res.scalars().fetchall()
+
+    async def find_filtered(self, **filter_by):
+        stmt = select(self.model).options(*self.get_select_options()).filter_by(**filter_by)  # type: ignore
         res = await self.session.execute(stmt)
         return res.scalars().fetchall()
 
     async def find_one(self, **filter_by):
         stmt = (
-            select(self.model) # type: ignore
+            select(self.model)  # type: ignore
             .options(*self.get_select_options())
             .filter_by(**filter_by)
         )

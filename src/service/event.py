@@ -1,78 +1,106 @@
-from uuid import UUID
-from datetime import datetime
-from functools import lru_cache
+import typing
+import uuid
 
-from sqlalchemy import select
-from fastapi import HTTPException
-from sqlalchemy.orm import selectinload
+from fastapi import HTTPException, UploadFile
 
-from src.schemas.event import EventListFilterSchema
-from src.database.models import Event, Place, Ticket
-from src.database.session import async_session_maker
+from src.database.s3_storage import s3_session_maker
+from src.database.unit_of_work import IUnitOfWork
+from src.database.models import Event, EventLocalisation
+from src.utils.validations import no_result_404, check_tocken
 
 
 class EventServise:
-    async def get_event_list(self, filter: EventListFilterSchema, page=None, size=None):
-        session = async_session_maker()
-        query = (
-            select(Event)
-            .join(Place)
-            .options(
-                selectinload(Event.place).selectinload(Place.country),
-                selectinload(Event.tickets).selectinload(Ticket.sport_type),
-                selectinload(Event.target_group),
-                selectinload(Event.sport_type),
-            )
+    async def get_event_list_paginated(
+        self,
+        unit_of_work: IUnitOfWork,
+        limit: int,
+        page: int,
+    ) -> list[Event]:
+        if page <= 0 or limit <= 0:
+            HTTPException(400, "Page and limit must be positive not null")
+        offset = limit * (page - 1)
+        return await unit_of_work.event.find_all_paginated(limit, offset)  # type: ignore
+
+    @no_result_404
+    async def get_event_by_id(self, unit_of_work: IUnitOfWork, id: uuid.UUID) -> Event:
+        return await unit_of_work.event.find_one(id=id)
+
+    @no_result_404
+    async def get_event_localisations(
+        self, unit_of_work: IUnitOfWork, event_id: uuid.UUID
+    ) -> list[EventLocalisation]:
+        await unit_of_work.event.find_one(id=event_id)
+        return await unit_of_work.event_localisation.find_filtered(
+            event_id=event_id
+        )  # type: ignore
+
+    @check_tocken
+    async def create_event(
+        self, unit_of_work: IUnitOfWork, data: dict[str, typing.Any]
+    ) -> Event:
+        id = await unit_of_work.event.add_one(data)
+        await unit_of_work.commit()
+        return await unit_of_work.event.find_one(id=id)
+
+    @check_tocken
+    @no_result_404
+    async def create_event_localisation(
+        self,
+        unit_of_work: IUnitOfWork,
+        event_id: uuid.UUID,
+        language_code: str,
+        localisation_data: dict[str, typing.Any],
+    ) -> EventLocalisation:
+        await unit_of_work.event.find_one(id=event_id)  # Checks is event exists
+
+        localisation_data["event_id"] = event_id
+        localisation_data["language_code"] = language_code
+        localisation_id = await unit_of_work.event_localisation.add_one(
+            localisation_data
+        )
+        await unit_of_work.commit()
+        return await unit_of_work.event_localisation.find_one(id=localisation_id)
+
+    @check_tocken
+    @no_result_404
+    async def create_event_localisation_banner(
+        self,
+        unit_of_work: IUnitOfWork,
+        event_id: uuid.UUID,
+        language_code: str,
+        banner: UploadFile,
+    ) -> EventLocalisation:
+        localisation = await unit_of_work.event_localisation.find_one(
+            event_id=event_id, language_code=language_code
         )
 
-        if filter.sport_type:
-            query = query.filter(Event.sport_type_id == filter.sport_type).join(
-                Event.sport_type
-            )
-        if filter.start_date:
-            query = query.filter(Event.participation_start >= filter.start_date)
-        if filter.end_date:
-            query = query.filter(Event.participation_end <= filter.end_date)
-        if filter.is_avaliable:
-            query = query.filter(Event.registration_start <= datetime.utcnow())
-            query = query.filter(Event.registration_end >= datetime.utcnow())
-        if filter.search:
-            query = query.filter(Event.title.ilike(f"%{filter.search}%"))
-
-        result = await session.execute(query)
-        await session.close()
-        return result.scalars().all()
-
-    async def get_event(self, event_id: UUID):
-        session = async_session_maker()
-        query = (
-            select(Event)
-            .filter(Event.id == event_id)
-            .options(
-                selectinload(Event.place).selectinload(Place.country),
-                selectinload(Event.target_group),
-                selectinload(Event.documents),
-                selectinload(Event.starter_items),
-                selectinload(Event.articles),
-                selectinload(Event.tickets).selectinload(Ticket.sport_type),
-                selectinload(Event.sport_type),
-                selectinload(Event.social_links),
-            )
+        localisation_id = await unit_of_work.event_localisation.edit_one(
+            id=localisation.id,
+            data={
+                "banner_filename": s3_session_maker().write(
+                    banner.file, banner.filename
+                )
+            },
         )
-        result = await session.execute(query)
-        result = result.scalar_one_or_none()
-        await session.close()
-        if not result:
-            raise HTTPException(status_code=400, detail="Event not found")
-        return result
+        await unit_of_work.commit()
+        return await unit_of_work.event_localisation.find_one(id=localisation_id)
 
-    def create_event(self): ...
+    @check_tocken
+    async def create_article(
+        self,
+        unit_of_work: IUnitOfWork,
+        event_id: uuid.UUID,
+        language_code: str,
+        data: dict[str, typing.Any],
+    ) -> Event:
+        localisation = await unit_of_work.event_localisation.find_one(
+            event_id=event_id, language_code=language_code
+        )
+        data["event_translation_id"] = localisation.id
+        article_id = await unit_of_work.article.add_one(data)
+        await unit_of_work.commit()
+        return await unit_of_work.article.find_one(id=article_id)
 
     def update_event(self): ...
 
     def delete_event(self): ...
-
-
-@lru_cache
-def get_event_service():
-    return EventServise()

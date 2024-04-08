@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.api.v1.router import v1_router
+from src.api.routes import v1_router
 
 app = FastAPI(
     title="event-service",
