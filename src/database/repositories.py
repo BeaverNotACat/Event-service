@@ -2,18 +2,20 @@ from sqlalchemy import select
 
 from src.database.models import (
     Event,
-    EventLocalisation,
+    EventLocalization,
     Ticket,
-    TicketLocalisation,
-    SportType,
-    SportTypeLocalisation,
+    TicketLocalization,
+    Sport,
+    SportLocalization,
     Document,
     SocialLink,
     StarterItem,
     Article,
     TicketRegistration,
 )
+from src.schemas.schemas import CreateEvent, CreateSport
 from src.utils.repository import SQLAlchemyRepository
+from src.utils.mappers import event_schema_to_model, sport_schema_to_model
 
 
 class EventRepository(SQLAlchemyRepository):
@@ -27,27 +29,37 @@ class EventRepository(SQLAlchemyRepository):
             .offset(offset)
         )  # type: ignore
         res = await self.session.execute(stmt)
-        return res.scalars().fetchall()
+        return res.unique().scalars().fetchall()
+
+    async def add_one_schema(self, schema: CreateEvent) -> Event:
+        model = event_schema_to_model(schema)
+        self.session.add(model)
+        return model
 
 
-class EventLocalisationRepository(SQLAlchemyRepository):
-    model = EventLocalisation
+class EventLocalizationRepository(SQLAlchemyRepository):
+    model = EventLocalization
 
 
 class TicketRepository(SQLAlchemyRepository):
     model = Ticket
 
 
-class TicketLocalisationRepository(SQLAlchemyRepository):
-    model = TicketLocalisation
+class TicketLocalizationRepository(SQLAlchemyRepository):
+    model = TicketLocalization
 
 
-class SportTypeRepository(SQLAlchemyRepository):
-    model = SportType
+class SportRepository(SQLAlchemyRepository):
+    model = Sport
+
+    async def add_one_schema(self, schema: CreateSport) -> Sport:
+        model = sport_schema_to_model(schema)
+        self.session.add(model)
+        return model
 
 
-class SportTypeLocalisationRepository(SQLAlchemyRepository):
-    model = SportTypeLocalisation
+class SportLocalizationRepository(SQLAlchemyRepository):
+    model = SportLocalization
 
 
 class DocumentRepository(SQLAlchemyRepository):

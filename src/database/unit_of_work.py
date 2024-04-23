@@ -1,28 +1,31 @@
 from abc import ABC, abstractmethod
 
+from src.database.s3_storage import s3_session_maker
 from src.database.session import async_session_maker
 from src.database.repositories import (
     EventRepository,
-    EventLocalisationRepository,
-    SportTypeRepository,
+    EventLocalizationRepository,
+    SportRepository,
     TicketRepository,
-    TicketLocalisationRepository,
+    TicketLocalizationRepository,
     TicketRegistrationRepository,
-    SportTypeLocalisationRepository,
+    SportLocalizationRepository,
     DocumentRepository,
     SocialLinkRepository,
     StarterItemRepository,
     ArticleRepository,
 )
+from src.utils.repository import S3Repository
 
 
 class IUnitOfWork(ABC):
+    s3: S3Repository
     event: EventRepository
-    event_localisation: EventLocalisationRepository
-    sport_type: SportTypeRepository
-    sport_type_localisation: SportTypeLocalisationRepository
+    event_localization: EventLocalizationRepository
+    sport: SportRepository
+    sport_localization: SportLocalizationRepository
     ticket: TicketRepository
-    ticket_localisation: TicketLocalisationRepository
+    ticket_localization: TicketLocalizationRepository
     ticket_registration: TicketRegistrationRepository
     document: DocumentRepository
     social_link: SocialLinkRepository
@@ -48,20 +51,24 @@ class IUnitOfWork(ABC):
 class UnitOfWork(IUnitOfWork):
     def __init__(self):
         self.db_session_factory = async_session_maker
+        self.s3_session_factory = s3_session_maker
 
     async def __aenter__(self):
         self.db_session = self.db_session_factory()
+        self.s3_session = self.s3_session_factory()
 
+        self.s3 = S3Repository(self.s3_session)
         self.event = EventRepository(self.db_session)
-        self.event_localisation = EventLocalisationRepository(self.db_session)
-        self.sport_type = SportTypeRepository(self.db_session)
-        self.sport_type_localisation = SportTypeLocalisationRepository(self.db_session)
+        self.event_localization = EventLocalizationRepository(self.db_session)
+        self.sport = SportRepository(self.db_session)
+        self.sport_localization = SportLocalizationRepository(self.db_session)
         self.ticket = TicketRepository(self.db_session)
-        self.ticket_localisation = TicketLocalisationRepository(self.db_session)
+        self.ticket_localization = TicketLocalizationRepository(self.db_session)
         self.ticket_registration = TicketRegistrationRepository(self.db_session)
         self.social_link = SocialLinkRepository(self.db_session)
         self.starter_item = StarterItemRepository(self.db_session)
         self.article = ArticleRepository(self.db_session)
+        self.document = DocumentRepository(self.db_session)
 
     async def __aexit__(self, *args):
         await self.rollback()

@@ -15,7 +15,7 @@ def no_result_404(func):  # TODO rename
     return wrapper
 
 
-def check_tocken(func):
+def validate_organiser_rights(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         # TODO tocken validation

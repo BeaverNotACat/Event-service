@@ -1,106 +1,76 @@
-import typing
 import uuid
 
-from fastapi import HTTPException, UploadFile
+from fastapi import UploadFile
 
-from src.database.s3_storage import s3_session_maker
 from src.database.unit_of_work import IUnitOfWork
-from src.database.models import Event, EventLocalisation
-from src.utils.validations import no_result_404, check_tocken
+from src.utils.validations import validate_organiser_rights
+from src.schemas.schemas import CreateEvent
 
 
 class EventServise:
     async def get_event_list_paginated(
-        self,
-        unit_of_work: IUnitOfWork,
-        limit: int,
-        page: int,
-    ) -> list[Event]:
-        if page <= 0 or limit <= 0:
-            HTTPException(400, "Page and limit must be positive not null")
+        self, unit_of_work: IUnitOfWork, limit: int, page: int
+    ):
         offset = limit * (page - 1)
-        return await unit_of_work.event.find_all_paginated(limit, offset)  # type: ignore
+        return await unit_of_work.event.find_all_paginated(limit, offset)
 
-    @no_result_404
-    async def get_event_by_id(self, unit_of_work: IUnitOfWork, id: uuid.UUID) -> Event:
+    async def get_event(self, unit_of_work: IUnitOfWork, id: uuid.UUID):
         return await unit_of_work.event.find_one(id=id)
 
-    @no_result_404
-    async def get_event_localisations(
-        self, unit_of_work: IUnitOfWork, event_id: uuid.UUID
-    ) -> list[EventLocalisation]:
-        await unit_of_work.event.find_one(id=event_id)
-        return await unit_of_work.event_localisation.find_filtered(
-            event_id=event_id
-        )  # type: ignore
-
-    @check_tocken
-    async def create_event(
-        self, unit_of_work: IUnitOfWork, data: dict[str, typing.Any]
-    ) -> Event:
-        id = await unit_of_work.event.add_one(data)
+    @validate_organiser_rights
+    async def create_event(self, unit_of_work: IUnitOfWork, event: CreateEvent):
+        res = await unit_of_work.event.add_one_schema(event)
+        print(res.localizations["ru"].__tablename__)
         await unit_of_work.commit()
-        return await unit_of_work.event.find_one(id=id)
+        return res
 
-    @check_tocken
-    @no_result_404
-    async def create_event_localisation(
+    @validate_organiser_rights
+    async def update_event_banner(
         self,
         unit_of_work: IUnitOfWork,
         event_id: uuid.UUID,
         language_code: str,
-        localisation_data: dict[str, typing.Any],
-    ) -> EventLocalisation:
-        await unit_of_work.event.find_one(id=event_id)  # Checks is event exists
+        file: UploadFile,
+    ):
+        key = await unit_of_work.s3.add_one(file.file, file.filename)
+        event = await unit_of_work.event.find_one(id=event_id)
+        if event.localizations[language_code].banner_filename != "default.png":
+            await unit_of_work.s3.delete_one(
+                event.localizations[language_code].banner_filename
+            )
 
-        localisation_data["event_id"] = event_id
-        localisation_data["language_code"] = language_code
-        localisation_id = await unit_of_work.event_localisation.add_one(
-            localisation_data
+        await unit_of_work.event_localization.edit_one(
+            id=event.localizations[language_code].id, data={"banner_filename": key}
+        )
+
+        await unit_of_work.commit()
+        return await unit_of_work.event.find_one(id=event_id)
+
+    @validate_organiser_rights
+    async def create_event_document(
+        self, unit_of_work: IUnitOfWork, event_id: uuid.UUID, title: str
+    ):
+        await unit_of_work.document.add_one(
+            {
+                "event_id": event_id,
+                "title": title,
+                "filename": "default.pdf",
+            }
         )
         await unit_of_work.commit()
-        return await unit_of_work.event_localisation.find_one(id=localisation_id)
+        return await unit_of_work.event.find_one(id=event_id)
 
-    @check_tocken
-    @no_result_404
-    async def create_event_localisation_banner(
+    @validate_organiser_rights
+    async def upload_document(
         self,
         unit_of_work: IUnitOfWork,
         event_id: uuid.UUID,
-        language_code: str,
-        banner: UploadFile,
-    ) -> EventLocalisation:
-        localisation = await unit_of_work.event_localisation.find_one(
-            event_id=event_id, language_code=language_code
-        )
-
-        localisation_id = await unit_of_work.event_localisation.edit_one(
-            id=localisation.id,
-            data={
-                "banner_filename": s3_session_maker().write(
-                    banner.file, banner.filename
-                )
-            },
-        )
+        title: str,
+        file: UploadFile,
+    ):
+        key = await unit_of_work.s3.add_one(file.file, file.filename)
+        document = await unit_of_work.document.find_one(event_id=event_id, title=title)
+        document.filename = key
+        await unit_of_work.document.edit_one(id=document.id, data={"filename": key})
         await unit_of_work.commit()
-        return await unit_of_work.event_localisation.find_one(id=localisation_id)
-
-    @check_tocken
-    async def create_article(
-        self,
-        unit_of_work: IUnitOfWork,
-        event_id: uuid.UUID,
-        language_code: str,
-        data: dict[str, typing.Any],
-    ) -> Event:
-        localisation = await unit_of_work.event_localisation.find_one(
-            event_id=event_id, language_code=language_code
-        )
-        data["event_translation_id"] = localisation.id
-        article_id = await unit_of_work.article.add_one(data)
-        await unit_of_work.commit()
-        return await unit_of_work.article.find_one(id=article_id)
-
-    def update_event(self): ...
-
-    def delete_event(self): ...
+        return await unit_of_work.event.find_one(id=event_id)

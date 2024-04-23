@@ -35,7 +35,7 @@ class S3Storage:
         )
         self._bucket = self._s3.Bucket(name=self.AWS_S3_BUCKET_NAME)
 
-    def get_path(self, name: str) -> str:
+    async def get_path(self, name: str) -> str:
         return "{}://{}/{}/{}".format(
             self._http_scheme,
             self.AWS_S3_ENDPOINT_URL,
@@ -43,10 +43,15 @@ class S3Storage:
             name,
         )
 
-    def write(self, file: BinaryIO, name: str) -> str:
+    async def write(self, file: BinaryIO, key: str) -> str:
+        """Adds file to s3 storage and changes filename to uuid.uuid4()+file suffix"""
         file.seek(0, 0)
-        key = self.generate_new_filename(name)
+        key = self.generate_new_filename(key)
         self._bucket.upload_fileobj(file, key)
+        return key
+
+    async def delete(self, key: str) -> str:
+        self._s3.Object(self.AWS_S3_BUCKET_NAME, key).delete()  # Boto3 sucks
         return key
 
     def generate_new_filename(self, filename: str) -> str:
