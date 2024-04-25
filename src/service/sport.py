@@ -1,7 +1,7 @@
 import uuid
 
 from src.database.unit_of_work import IUnitOfWork
-from src.schemas.schemas import CreateSport, GetSport
+from src.schemas.schemas import CreateSport
 
 
 class SportServise:
@@ -13,12 +13,14 @@ class SportServise:
         await unit_of_work.commit()
         return res
 
-    async def update_sport(self, unit_of_work: IUnitOfWork, id: uuid.UUID,  data: CreateSport):
+    async def update_sport(
+        self, unit_of_work: IUnitOfWork, id: uuid.UUID, data: CreateSport
+    ):
         sport = await unit_of_work.sport.find_one(id=id)
         for language in sport.localizations:
             await unit_of_work.sport_localization.edit_one(
                 id=sport.localizations[language].id,
-                data=data.localizations[language].model_dump()
+                data=data.localizations[language].model_dump(),
             )
         await unit_of_work.commit()
         return await unit_of_work.sport.find_one(id=id)

@@ -29,7 +29,9 @@ async def list_sport_types(unit_of_work: UnitOfWorkDep):
         )
 
 
-@v1_router.post("/sports", tags=["sport"], response_model=GetSport, status_code=201)  # TODO filters
+@v1_router.post(
+    "/sports", tags=["sport"], response_model=GetSport, status_code=201
+)  # TODO filters
 async def create_sport_types(unit_of_work: UnitOfWorkDep, sport: CreateSport):
     async with unit_of_work:
         return GetSport.model_validate(
@@ -38,7 +40,9 @@ async def create_sport_types(unit_of_work: UnitOfWorkDep, sport: CreateSport):
 
 
 @v1_router.put("/sports/{id}", tags=["sport"], response_model=GetSport)  # TODO filters
-async def update_sport_types(unit_of_work: UnitOfWorkDep, id: uuid.UUID, sport: CreateSport):
+async def update_sport_types(
+    unit_of_work: UnitOfWorkDep, id: uuid.UUID, sport: CreateSport
+):
     async with unit_of_work:
         return GetSport.model_validate(
             await SportServise().update_sport(unit_of_work, id, sport)

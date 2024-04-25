@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import BinaryIO
 import uuid
 
-from sqlalchemy import insert, select, update, delete
+from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.base import ExecutableOption
 

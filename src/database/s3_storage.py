@@ -52,10 +52,10 @@ class S3Storage:
             file,
             key,
             ExtraArgs={
-                'ContentType': guess_type(key)[0],
-                'ACL': 'public-read',
+                "ContentType": guess_type(key)[0],
+                "ACL": "public-read",
             },
-)
+        )
         return key
 
     async def delete(self, key: str) -> str:
