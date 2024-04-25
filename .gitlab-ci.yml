@@ -3,6 +3,7 @@ stages:
 
 lint-job:
   stage: lint
+  script:
     - echo "👕 Linting"
     - pip install ruff
     - pip install --editable ".[test]"
