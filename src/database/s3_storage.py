@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import BinaryIO
+from mimetypes import guess_type
 import uuid
 
 import boto3
@@ -35,7 +36,7 @@ class S3Storage:
         )
         self._bucket = self._s3.Bucket(name=self.AWS_S3_BUCKET_NAME)
 
-    async def get_path(self, name: str) -> str:
+    def get_path(self, name: str) -> str:
         return "{}://{}/{}/{}".format(
             self._http_scheme,
             self.AWS_S3_ENDPOINT_URL,
@@ -47,7 +48,14 @@ class S3Storage:
         """Adds file to s3 storage and changes filename to uuid.uuid4()+file suffix"""
         file.seek(0, 0)
         key = self.generate_new_filename(key)
-        self._bucket.upload_fileobj(file, key)
+        self._bucket.upload_fileobj(
+            file,
+            key,
+            ExtraArgs={
+                'ContentType': guess_type(key)[0],
+                'ACL': 'public-read',
+            },
+)
         return key
 
     async def delete(self, key: str) -> str:

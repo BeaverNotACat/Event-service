@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import BinaryIO
 import uuid
 
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.base import ExecutableOption
 
@@ -55,6 +55,9 @@ class SQLAlchemyRepository(AbstractRepository):
         res = await self.session.execute(stmt)
         res = res.unique().scalar_one()
         return res
+
+    async def delete_one(self, id: uuid.UUID):
+        await self.session.delete((await self.find_one(id=id)))
 
     def get_select_options(self) -> list[ExecutableOption]:
         return []

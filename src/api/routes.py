@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, Response, UploadFile
 
 from src.service.sport import SportServise
 from src.utils.dependencies import UnitOfWorkDep
@@ -29,12 +29,27 @@ async def list_sport_types(unit_of_work: UnitOfWorkDep):
         )
 
 
-@v1_router.post("/sports", tags=["sport"], response_model=GetSport)  # TODO filters
+@v1_router.post("/sports", tags=["sport"], response_model=GetSport, status_code=201)  # TODO filters
 async def create_sport_types(unit_of_work: UnitOfWorkDep, sport: CreateSport):
     async with unit_of_work:
         return GetSport.model_validate(
             await SportServise().create_sport(unit_of_work, sport)
         )
+
+
+@v1_router.put("/sports/{id}", tags=["sport"], response_model=GetSport)  # TODO filters
+async def update_sport_types(unit_of_work: UnitOfWorkDep, id: uuid.UUID, sport: CreateSport):
+    async with unit_of_work:
+        return GetSport.model_validate(
+            await SportServise().update_sport(unit_of_work, id, sport)
+        )
+
+
+@v1_router.delete("/sports/{id}", tags=["sport"], status_code=204)  # TODO filters
+async def delete_sport_types(unit_of_work: UnitOfWorkDep, id: uuid.UUID):
+    async with unit_of_work:
+        await SportServise().delete_sport(unit_of_work, id)
+        return Response("Deleted")
 
 
 @v1_router.get("/events", tags=["events"], response_model=GetEventList)  # TODO filters

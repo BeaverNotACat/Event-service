@@ -41,7 +41,9 @@ class Sport(Base):
 
 class SportLocalization(Base):
     __tablename__ = "sport_localization"
-    __mapper_args__ = {"eager_defaults": True}
+    __mapper_args__ = {
+        "eager_defaults": True,
+    }
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
@@ -58,9 +60,12 @@ class SportLocalizationAssociation(Base):
     language: Mapped[str] = mapped_column(String(2))
 
     sport: Mapped[Sport] = relationship(
-        back_populates="localization_associations", lazy="joined"
+        back_populates="localization_associations",
+        lazy="joined",
     )
-    localization: Mapped["SportLocalization"] = relationship(lazy="joined")
+    localization: Mapped["SportLocalization"] = relationship(
+        lazy="joined", cascade="all, delete-orphan", single_parent=True
+    )
 
 
 class Event(Base):

@@ -2,7 +2,9 @@ import uuid
 from enum import StrEnum
 from datetime import datetime
 
-from pydantic import BaseModel, RootModel, ConfigDict
+from pydantic import BaseModel, RootModel, ConfigDict, computed_field
+
+from src.database.s3_storage import s3_session_maker
 
 
 class LanguageCode(StrEnum):
@@ -35,17 +37,6 @@ class GetEventList(RootModel):
     root: list[GetEvent]
 
 
-class CreateEventGeneral(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    registration_start_at: datetime
-    registration_end_at: datetime
-    participation_start_at: datetime
-    participation_end_at: datetime
-    minimal_age: int
-    sport_type_id: uuid.UUID
-    organizer_id: uuid.UUID  # TODO remake with tockens
-
-
 class CreateEventLocalization(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     title: str
@@ -56,6 +47,10 @@ class CreateEventLocalization(BaseModel):
 
 class GetEventLocalization(CreateEventLocalization):
     banner_filename: str
+
+    @computed_field
+    def banner_filepath(self) -> str:
+        return s3_session_maker().get_path(self.banner_filename)
 
 
 class CreateArticle(BaseModel):
@@ -107,3 +102,7 @@ class CreateDocument(BaseModel):
 class GetDocument(CreateDocument):
     model_config = ConfigDict(from_attributes=True)
     filename: str
+
+    @computed_field
+    def filepath(self) -> str:
+        return s3_session_maker().get_path(self.filename)

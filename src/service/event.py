@@ -20,7 +20,6 @@ class EventServise:
     @validate_organiser_rights
     async def create_event(self, unit_of_work: IUnitOfWork, event: CreateEvent):
         res = await unit_of_work.event.add_one_schema(event)
-        print(res.localizations["ru"].__tablename__)
         await unit_of_work.commit()
         return res
 
