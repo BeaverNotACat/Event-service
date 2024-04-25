@@ -1,0 +1,18 @@
+stages:
+  - lint
+
+lint-test-job:
+  stage: test
+    - echo "👕 Linting"
+    - pip install ruff
+    - pip install --editable ".[test]"
+    - ruff check
+    - echo "💚 Linting complete"
+
+
+deploy-job:
+  stage: deploy
+  environment: production
+  script:
+    - echo "Deploying application..."
+    - echo "Application successfully deployed."
