@@ -1,5 +1,5 @@
 # ghidra-event-service
-Event service for International Sports Portal Demo. For project school
+Event service for International Sports Portal Demo. Made for project school
 > [!IMPORTANT]  
 > This repo is mirrored from [gitlab](https://gitlab.com/hydra-sports-portal/hydra-backend/event-service)
 ## General
