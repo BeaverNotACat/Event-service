@@ -2,8 +2,6 @@
 Event service for International Sports Portal Demo. Made for project school
 > [!IMPORTANT]  
 > This repo is mirrored from [gitlab](https://gitlab.com/hydra-sports-portal/hydra-backend/event-service)
-## General
-Service provides authentication with Yandex ID
 ## Stack
 - fastapi      API
 - pydantic     Schemas serialisation
